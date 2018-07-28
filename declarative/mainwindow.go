@@ -15,6 +15,7 @@ type MainWindow struct {
 	ContextMenuItems   []MenuItem
 	Enabled            Property
 	Font               Font
+	FixedSize          bool
 	MaxSize            Size
 	MinSize            Size
 	Name               string
@@ -110,6 +111,8 @@ func (mw MainWindow) Create() error {
 	if err := w.SetRightToLeftLayout(mw.RightToLeftLayout); err != nil {
 		return err
 	}
+
+	w.SetFixedSize(mw.FixedSize)
 
 	return builder.InitWidget(fi, w, func() error {
 		if len(mw.ToolBar.Items) > 0 {
