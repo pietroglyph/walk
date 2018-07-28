@@ -5,8 +5,8 @@
 package main
 
 import (
-	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative"
+	"github.com/pietroglyph/walk"
+	. "github.com/pietroglyph/walk/declarative"
 )
 
 func main() {
