@@ -67,6 +67,35 @@ func NewTreeView(parent Container) (*TreeView, error) {
 		return nil, err
 	}
 
+	tv.GraphicsEffects().Add(InteractionEffect)
+	tv.GraphicsEffects().Add(FocusEffect)
+
+	tv.MustRegisterProperty("CurrentItem", NewReadOnlyProperty(
+		func() interface{} {
+			return tv.CurrentItem()
+		},
+		tv.CurrentItemChanged()))
+
+	tv.MustRegisterProperty("CurrentItemLevel", NewReadOnlyProperty(
+		func() interface{} {
+			level := -1
+			item := tv.CurrentItem()
+
+			for item != nil {
+				level++
+				item = item.Parent()
+			}
+
+			return level
+		},
+		tv.CurrentItemChanged()))
+
+	tv.MustRegisterProperty("HasCurrentItem", NewReadOnlyBoolProperty(
+		func() bool {
+			return tv.CurrentItem() != nil
+		},
+		tv.CurrentItemChanged()))
+
 	succeeded = true
 
 	return tv, nil
@@ -84,6 +113,24 @@ func (tv *TreeView) Dispose() {
 	tv.WidgetBase.Dispose()
 
 	tv.disposeImageListAndCaches()
+}
+
+func (tv *TreeView) SetBackground(bg Brush) {
+	tv.WidgetBase.SetBackground(bg)
+
+	color := Color(win.GetSysColor(win.COLOR_WINDOW))
+
+	if bg != nil {
+		type Colorer interface {
+			Color() Color
+		}
+
+		if c, ok := bg.(Colorer); ok {
+			color = c.Color()
+		}
+	}
+
+	tv.SendMessage(win.TVM_SETBKCOLOR, 0, uintptr(color))
 }
 
 func (tv *TreeView) Model() TreeModel {
@@ -175,6 +222,14 @@ func (tv *TreeView) ItemAt(x, y int) TreeItem {
 	}
 
 	return nil
+}
+
+func (tv *TreeView) ItemHeight() int {
+	return int(tv.SendMessage(win.TVM_GETITEMHEIGHT, 0, 0))
+}
+
+func (tv *TreeView) SetItemHeight(height int) {
+	tv.SendMessage(win.TVM_SETITEMHEIGHT, uintptr(height), 0)
 }
 
 func (tv *TreeView) resetItems() error {
@@ -478,7 +533,13 @@ func (tv *TreeView) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr) u
 
 			if nmtvdi.Item.Mask&win.TVIF_TEXT != 0 {
 				info := tv.item2Info[item]
-				info.utf16Text = syscall.StringToUTF16Ptr(item.Text())
+				var text string
+				rc := win.RECT{Left: int32(nmtvdi.Item.HItem)}
+				if 0 != tv.SendMessage(win.TVM_GETITEMRECT, 0, uintptr(unsafe.Pointer(&rc))) {
+					// Only retrieve text if the item is visible. Why isn't Windows doing this for us?
+					text = item.Text()
+				}
+				info.utf16Text = syscall.StringToUTF16Ptr(text)
 				nmtvdi.Item.PszText = uintptr(unsafe.Pointer(info.utf16Text))
 			}
 			if nmtvdi.Item.Mask&win.TVIF_CHILDREN != 0 {
