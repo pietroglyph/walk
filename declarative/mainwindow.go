@@ -16,6 +16,8 @@ type MainWindow struct {
 	Enabled            Property
 	Font               Font
 	FixedSize          bool
+	MaximizeEnabled    bool
+	MinimizeEnabled    bool
 	MaxSize            Size
 	MinSize            Size
 	Name               string
@@ -113,6 +115,8 @@ func (mw MainWindow) Create() error {
 	}
 
 	w.SetFixedSize(mw.FixedSize)
+	w.SetMaxBtnEnabled(mw.MaximizeEnabled)
+	w.SetMinBtnEnabled(mw.MinimizeEnabled)
 
 	return builder.InitWidget(fi, w, func() error {
 		if len(mw.ToolBar.Items) > 0 {
